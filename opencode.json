@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "external_directory": {
+      "../vibix-ai-lab/**": "allow",
+      "../vibit/**": "allow",
+      "../gvibu-ai-lab/**": "allow"
+    },
+    "edit": {
+      "../vibix-ai-lab/**": "deny",
+      "../vibit/**": "deny",
+      "../gvibu-ai-lab/**": "deny",
+      "./opencode.json": "deny",
+      "./opencode.jsonc": "deny"
+    },
+    "bash": {
+    	"rm * ../vibix-ai-lab/**": "deny",
+    	"rm * ../gvibu-ai-lab/**": "deny",
+    	"rm * ../vibit/**": "deny",
+    	"cp ./* ../vibix-ai-lab/**": "ask",
+    	"cp ./* ../gvibu-ai-lab/**": "ask",
+    	"cp * ./* ../vibit/**": "ask",
+    }
+  }
+}
