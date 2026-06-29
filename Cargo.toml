@@ -1,0 +1,16 @@
+[package]
+name = "vish"
+version = "0.2.0"
+edition = "2021"
+description = "VIBIX SHell — cross-platform shell for VIBIX and Linux"
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+libc = "0.2"
+
+[profile.release]
+opt-level = "z"
+lto = true
