@@ -12,18 +12,30 @@
 
 NASM      := nasm
 NASMFLAGS := -f bin
+CARGO     ?= cargo
+RUST_TOOLCHAIN ?= stable
+RUST_TARGET ?= x86_64-unknown-none
+VIBIX_RUSTFLAGS = -C relocation-model=static -C link-arg=--image-base=0x2000000
 
 SRC       := src/vibix/vish.asm
-BIN       := vish.bin
+VISH_BIN  ?= vish.bin
+BIN       := $(VISH_BIN)
 
-.PHONY: all clean size hexdump strings
+.PHONY: all nasm elf elf-probe clean size hexdump strings
 
 all: $(BIN)
+nasm: $(BIN)
+
+elf:
+	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --bin vibix --target $(RUST_TARGET) --release
+
+elf-probe:
+	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --bin vibix_probe --target $(RUST_TARGET) --release
 
 $(BIN): $(SRC)
 	$(NASM) $(NASMFLAGS) $< -o $@
 	@echo "Built: $@ ($$(wc -c < $@) bytes)"
-	@echo "Entry: $$($(NASM) -f bin -l /dev/stdout $< 2>/dev/null | head -3)"
+	@echo "Entry: $$($(NASM) -f bin -l /dev/stdout -o /dev/null $< 2>/dev/null | head -3)"
 
 clean:
 	rm -f $(BIN)

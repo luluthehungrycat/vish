@@ -203,8 +203,8 @@ read_line:
     inc r14
 
     ; Echo back
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 
@@ -219,18 +219,18 @@ read_line:
     ; Backspace sequence: BS + space + BS
     push r14
     mov byte [rel char_buf], 0x08
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x20
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x08
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     pop r14
@@ -241,13 +241,13 @@ read_line:
     mov byte [r12 + r14], 0                ; null-terminate
     ; Write CRLF
     mov byte [rel char_buf], 0x0d
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x0a
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     jmp .done
@@ -264,23 +264,23 @@ read_line:
     mov r14, 0
     ; Write ^C then newline
     mov byte [rel char_buf], '^'
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 'C'
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x0d
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x0a
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     ; Re-display prompt and continue reading
@@ -371,8 +371,8 @@ redraw_line:
 
     ; CR
     mov byte [rel char_buf], 0x0d
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 
@@ -380,8 +380,8 @@ redraw_line:
     mov byte [rel char_buf], 0x1b
     mov byte [rel char_buf+1], 0x5b
     mov byte [rel char_buf+2], 0x4b
-    lea rdi, [rel char_buf]
-    mov rsi, 3
+    lea rsi, [rel char_buf]
+    mov rdx, 3
     mov rdi, 1
     call sys_write
 
@@ -564,7 +564,7 @@ record_history:
 
     push rdi
     push rsi
-    mov rdi, rsi                           ; current command
+    mov rdi, [rsp + 8]                      ; original command pointer
     mov rsi, rbx                           ; last entry
     call string_equal
     pop rsi
@@ -600,6 +600,7 @@ record_history:
     imul rcx, HISTORY_STRIDE
     lea rdi, [rel history_buffer + rcx]
     mov rcx, rsi
+    mov rsi, [rsp + 16]                     ; original command pointer
     cmp rcx, LINE_CAPACITY - 1
     jb .copy_ok
     mov rcx, LINE_CAPACITY - 1
@@ -986,8 +987,8 @@ builtin_echo:
     cmp r14, 1
     je .first_arg
     mov byte [rel char_buf], ' '
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 .first_arg:
@@ -1013,13 +1014,13 @@ builtin_echo:
     je .echo_done
 
     mov byte [rel char_buf], 0x0d
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x0a
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 
@@ -1207,8 +1208,8 @@ builtin_clear:
     mov byte [rel char_buf+1], 0x5b
     mov byte [rel char_buf+2], 0x32
     mov byte [rel char_buf+3], 0x4a
-    lea rdi, [rel char_buf]
-    mov rsi, 4
+    lea rsi, [rel char_buf]
+    mov rdx, 4
     mov rdi, 1
     call sys_write
 
@@ -1216,8 +1217,8 @@ builtin_clear:
     mov byte [rel char_buf], 0x1b
     mov byte [rel char_buf+1], 0x5b
     mov byte [rel char_buf+2], 0x48
-    lea rdi, [rel char_buf]
-    mov rsi, 3
+    lea rsi, [rel char_buf]
+    mov rdx, 3
     mov rdi, 1
     call sys_write
 
@@ -1262,13 +1263,13 @@ builtin_history:
 
     ; Print "  N  command"
     mov byte [rel char_buf], ' '
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], ' '
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 
@@ -1279,13 +1280,13 @@ builtin_history:
 
     ; Print "  "
     mov byte [rel char_buf], ' '
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], ' '
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
 
@@ -1503,8 +1504,8 @@ write_escaped:
 
     ; Regular character
     mov [rel char_buf], al
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     inc r12
@@ -1539,13 +1540,13 @@ write_escaped:
 
     ; Unknown escape: emit literal backslash + char
     mov byte [rel char_buf], '\'
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov [rel char_buf], al
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     inc r12
@@ -1553,13 +1554,13 @@ write_escaped:
 
 .esc_newline:
     mov byte [rel char_buf], 0x0d
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     mov byte [rel char_buf], 0x0a
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     inc r12
@@ -1622,16 +1623,16 @@ write_escaped:
     jmp .esc_write_byte_keep_pos
 
 .esc_write_byte:
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     inc r12
     jmp .esc_loop
 
 .esc_write_byte_keep_pos:
-    lea rdi, [rel char_buf]
-    mov rsi, 1
+    lea rsi, [rel char_buf]
+    mov rdx, 1
     mov rdi, 1
     call sys_write
     jmp .esc_loop
@@ -1728,8 +1729,11 @@ sys_write:
     syscall
     ret
 
-; sys_read(fd, buf, len) — rax=2
+; sys_read(buf, len) — stdin wrapper around syscall read(fd, buf, len).
 sys_read:
+    mov rdx, rsi
+    mov rsi, rdi
+    xor rdi, rdi
     mov rax, 2
     syscall
     ret
