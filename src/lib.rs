@@ -12,3 +12,11 @@ pub mod parse;
 pub mod readline;
 pub mod exec;
 pub mod builtins;
+
+#[cfg(test)]
+#[path = "vibix/allocator.rs"]
+mod allocator_tests;
+
+#[cfg(test)]
+#[path = "vibix/runtime.rs"]
+mod runtime_tests;
