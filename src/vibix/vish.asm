@@ -1717,6 +1717,43 @@ prefix_match:
 
 ; ── Syscall wrappers ────────────────────────────────────────────────────────────
 
+; VIBIX's syscall ABI is full-clobber: the kernel may clear every GPR while a
+; syscall blocks. These wrappers keep the assembly caller's live state intact,
+; while leaving RAX available for the syscall result.
+%macro save_syscall_registers 0
+    push rbx
+    push rbp
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+%endmacro
+
+%macro restore_syscall_registers 0
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbp
+    pop rbx
+%endmacro
+
 ; sys_exit(code) — rax=0
 sys_exit:
     xor rdi, rdi
@@ -1725,17 +1762,22 @@ sys_exit:
 
 ; sys_write(fd, buf, len) — rax=1
 sys_write:
+    save_syscall_registers
     mov rax, 1
     syscall
+    restore_syscall_registers
     ret
 
 ; sys_read(buf, len) — stdin wrapper around syscall read(fd, buf, len).
 sys_read:
-    mov rdx, rsi
-    mov rsi, rdi
+    save_syscall_registers
+    ; Original wrapper args are saved at [rsp+64] and [rsp+72].
+    mov rdx, [rsp + 72]
+    mov rsi, [rsp + 64]
     xor rdi, rdi
     mov rax, 2
     syscall
+    restore_syscall_registers
     ret
 
 ; sys_fork() — rax=8
@@ -1880,23 +1922,65 @@ try_find_and_exec:
     mov rax, 8                             ; fork
     syscall
 
+    test rax, rax
+    js .fork_failed
     cmp rax, 0
     je .child
 
     ; ── Parent process ──
-    ; rax = child PID
-    mov rdi, rax
+    ; Keep the exact PID outside registers, which the blocking wait syscall
+    ; may clear. A zero return means the scheduler woke us; retry until this
+    ; child's zombie is actually reaped.
+    mov [rel saved_child_pid], rax
+.wait_child:
+    mov rdi, [rel saved_child_pid]
     sub rsp, 8                             ; space for exit status
     mov rsi, rsp
     xor rdx, rdx                           ; flags = 0
     mov rax, 10                            ; waitpid
     syscall
     add rsp, 8                             ; clean up status
+    test rax, rax
+    jz .wait_child                         ; still running; retry after wakeup
+    js .wait_failed
+    cmp rax, [rel saved_child_pid]
+    jne .wait_failed
 
     ; Discard the 3 pushed values
     add rsp, 24
 
     xor rax, rax                           ; return 0 = success
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+.fork_failed:
+    ; No child was created, so do not pass a negative errno to waitpid.
+    add rsp, 24
+    lea rsi, [rel str_fork_failed]
+    mov rdi, 1
+    call write_string
+    call write_newline
+    xor rax, rax                           ; command was found and handled
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    ret
+
+.wait_failed:
+    ; A wait error means the requested child is no longer waitable. Report it
+    ; and keep the shell alive instead of confusing it with an unknown command.
+    add rsp, 24
+    lea rsi, [rel str_wait_failed]
+    mov rdi, 1
+    call write_string
+    call write_newline
+    xor rax, rax                           ; command was found and handled
     pop r15
     pop r14
     pop r13
@@ -2012,6 +2096,8 @@ str_prompt:      db PROMPT_TEXT, 0
 str_welcome:     db "vish -- VIBIX SHell", 0x0d, 0x0a, 0x0d, 0x0a, 0
 str_farewell:    db 0x0d, 0x0a, "goodbye", 0x0d, 0x0a, 0
 str_not_found:   db ": command not found", 0
+str_fork_failed: db "vish: fork failed", 0
+str_wait_failed: db "vish: waitpid failed", 0
 str_exit_usage:  db "exit: usage: exit [code]", 0
 str_no_history:  db "no history", 0
 str_cat_notimpl: db "cat: file I/O not yet implemented", 0
@@ -2067,3 +2153,4 @@ history_browse:  resq 1                    ; browse position (0 = not browsing)
 path_buffer:     resb 256                  ; buffer for building paths
 saved_cmd_name:  resq 1                    ; temp for cmd_name across syscalls
 saved_argv:      resq 1                    ; temp for argv across syscalls
+saved_child_pid: resq 1                    ; exact child awaited by try_find_and_exec

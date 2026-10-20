@@ -27,10 +27,10 @@ all: $(BIN)
 nasm: $(BIN)
 
 elf:
-	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --bin vibix --target $(RUST_TARGET) --release
+	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --features baremetal --bin vibix --target $(RUST_TARGET) --release
 
 elf-probe:
-	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --bin vibix_probe --target $(RUST_TARGET) --release
+	RUSTFLAGS="$(VIBIX_RUSTFLAGS)" $(CARGO) +$(RUST_TOOLCHAIN) build --locked --no-default-features --features baremetal --bin vibix_probe --target $(RUST_TARGET) --release
 
 $(BIN): $(SRC)
 	$(NASM) $(NASMFLAGS) $< -o $@

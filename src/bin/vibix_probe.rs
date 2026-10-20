@@ -1,20 +1,52 @@
 #![no_std]
 #![no_main]
 
+core::arch::global_asm!(
+    ".section .text.vibix_probe_syscalls,\"ax\"",
+    ".global vibix_probe_write",
+    ".type vibix_probe_write,@function",
+    "vibix_probe_write:",
+    "push rbx",
+    "push rbp",
+    "push r12",
+    "push r13",
+    "push r14",
+    "push r15",
+    "mov rax, 1",
+    "syscall",
+    "pop r15",
+    "pop r14",
+    "pop r13",
+    "pop r12",
+    "pop rbp",
+    "pop rbx",
+    "ret",
+    ".size vibix_probe_write, .-vibix_probe_write",
+);
+
+extern "C" {
+    fn vibix_probe_write(fd: usize, buffer: *const u8, len: usize) -> usize;
+}
+
+core::arch::global_asm!(
+    ".section .text._start,\"ax\"",
+    ".global _start",
+    "_start:",
+    "and rsp, -16",
+    "call vibix_probe_main",
+    "ud2",
+);
+
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+extern "C" fn vibix_probe_main() -> ! {
     loop {
-        let mut result = 1usize;
         unsafe {
-            core::arch::asm!("syscall", inlateout("rax") result,
-                in("rdi") 1usize, in("rsi") b"OK\n".as_ptr(), in("rdx") 3usize,
-                lateout("rcx") _, lateout("r11") _, options(nostack));
+            vibix_probe_write(1, b"OK\n".as_ptr(), 3);
         }
-        let mut result = 5usize;
-        unsafe {
-            core::arch::asm!("syscall", inlateout("rax") result,
-                in("rdi") 0usize, in("rsi") 10_000_000usize,
-                lateout("rcx") _, lateout("r11") _, options(nostack));
+        // Keep the process runnable across timer ticks. VIBIX syscall 5
+        // currently busy-waits with interrupts masked, so it cannot yield.
+        for _ in 0..5_000_000 {
+            core::hint::spin_loop();
         }
     }
 }

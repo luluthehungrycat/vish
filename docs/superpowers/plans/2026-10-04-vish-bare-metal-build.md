@@ -62,7 +62,7 @@ Expected: both targets produce identical binaries and the tracked source bytes r
 - Produces: `make elf` builds the no-std shell at `target/x86_64-unknown-none/release/vibix`; `make elf-probe` builds the independent scheduler probe at `target/x86_64-unknown-none/release/vibix_probe`.
 - Runtime implements VISH's `ReadChar` and `WriteStr` using VIBIX syscall 2 (read fd 0), syscall 1 (write fd 1), and syscall 0 (exit).
 
-- [x] **Step 1: Add a target build check and verify RED.** Invoke `cargo +stable build --locked --no-default-features --bin vibix --target x86_64-unknown-none --release`.
+- [x] **Step 1: Add a target build check and verify RED.** Invoke `cargo +stable build --locked --no-default-features --features baremetal --bin vibix --target x86_64-unknown-none --release`.
 
 Expected before implementation: Cargo reports that binary target `vibix` does not exist.
 
@@ -76,7 +76,7 @@ Expected: tests fail to compile because the allocator type and operations are no
 Expected: allocator tests and all Linux tests pass.
 
 - [x] **Step 5: Add separate Rust shell and scheduler-probe binaries.** The shell entry emits the existing `vish -- VIBIX SHell` banner and shared prompt; the probe emits the `OK` marker and remains schedulable long enough for existing VIBIX evidence checks.
-- [x] **Step 6: Add the `elf` and `elf-probe` Make targets.** Both use stable Cargo, `x86_64-unknown-none`, release profile, and `--no-default-features`; preserve the exact output names expected by VIBIX.
+- [x] **Step 6: Add the `elf` and `elf-probe` Make targets.** Both use stable Cargo, `x86_64-unknown-none`, release profile, `--no-default-features`, and `--features baremetal`; preserve the exact output names expected by VIBIX.
 - [x] **Step 7: Build and inspect both artifacts.** Run `make elf elf-probe`; inspect both with `file`/`readelf`.
 
 Expected: distinct valid x86-64 ET_EXEC ELFs exist at `target/x86_64-unknown-none/release/vibix` and `target/x86_64-unknown-none/release/vibix_probe`.

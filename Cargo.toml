@@ -3,10 +3,12 @@ name = "vish"
 version = "0.2.0"
 edition = "2021"
 description = "VIBIX SHell — cross-platform shell for VIBIX and Linux"
+default-run = "vish"
 
 [features]
 default = ["std"]
 std = []
+baremetal = []
 
 [dependencies]
 libc = "0.2"
@@ -14,3 +16,21 @@ libc = "0.2"
 [profile.release]
 opt-level = "z"
 lto = true
+
+[[bin]]
+name = "vish"
+path = "src/main.rs"
+
+[[bin]]
+name = "vibix"
+path = "src/bin/vibix.rs"
+required-features = ["baremetal"]
+test = false
+bench = false
+
+[[bin]]
+name = "vibix_probe"
+path = "src/bin/vibix_probe.rs"
+required-features = ["baremetal"]
+test = false
+bench = false

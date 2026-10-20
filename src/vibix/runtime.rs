@@ -3,32 +3,97 @@ use crate::io::{ReadChar, WriteStr};
 #[cfg(not(test))]
 use vish::io::{ReadChar, WriteStr};
 
-fn syscall_read(fd: usize, buffer: &mut [u8]) -> isize {
-    let mut result = 2usize;
-    unsafe {
-        core::arch::asm!("syscall", inlateout("rax") result, inlateout("rdi") fd => _,
-            inlateout("rsi") buffer.as_mut_ptr() => _, inlateout("rdx") buffer.len() => _,
-            lateout("r8") _, lateout("r9") _, lateout("r10") _,
-            lateout("rcx") _, lateout("r11") _, options(nostack));
-    }
-    result as isize
+#[cfg(not(test))]
+core::arch::global_asm!(
+    ".section .text.vibix_syscall_wrappers,\"ax\"",
+    ".global vibix_syscall_read",
+    ".type vibix_syscall_read,@function",
+    "vibix_syscall_read:",
+    "push rbx",
+    "push rbp",
+    "push r12",
+    "push r13",
+    "push r14",
+    "push r15",
+    "mov rax, 2",
+    "syscall",
+    "pop r15",
+    "pop r14",
+    "pop r13",
+    "pop r12",
+    "pop rbp",
+    "pop rbx",
+    "ret",
+    ".size vibix_syscall_read, .-vibix_syscall_read",
+    ".global vibix_syscall_write",
+    ".type vibix_syscall_write,@function",
+    "vibix_syscall_write:",
+    "push rbx",
+    "push rbp",
+    "push r12",
+    "push r13",
+    "push r14",
+    "push r15",
+    "mov rax, 1",
+    "syscall",
+    "pop r15",
+    "pop r14",
+    "pop r13",
+    "pop r12",
+    "pop rbp",
+    "pop rbx",
+    "ret",
+    ".size vibix_syscall_write, .-vibix_syscall_write",
+    ".global vibix_syscall_brk",
+    ".type vibix_syscall_brk,@function",
+    "vibix_syscall_brk:",
+    "push rbx",
+    "push rbp",
+    "push r12",
+    "push r13",
+    "push r14",
+    "push r15",
+    "mov rax, 4",
+    "syscall",
+    "pop r15",
+    "pop r14",
+    "pop r13",
+    "pop r12",
+    "pop rbp",
+    "pop rbx",
+    "ret",
+    ".size vibix_syscall_brk, .-vibix_syscall_brk",
+);
+
+#[cfg(not(test))]
+extern "C" {
+    fn vibix_syscall_read(fd: usize, buffer: *mut u8, len: usize) -> usize;
+    fn vibix_syscall_write(fd: usize, buffer: *const u8, len: usize) -> usize;
 }
 
+#[cfg(not(test))]
+fn syscall_read(fd: usize, buffer: &mut [u8]) -> isize {
+    unsafe { vibix_syscall_read(fd, buffer.as_mut_ptr(), buffer.len()) as isize }
+}
+
+#[cfg(test)]
+fn syscall_read(_fd: usize, _buffer: &mut [u8]) -> isize {
+    0
+}
+
+#[cfg(not(test))]
 fn syscall_write(fd: usize, buffer: &[u8]) -> isize {
-    let mut result = 1usize;
-    unsafe {
-        core::arch::asm!("syscall", inlateout("rax") result, inlateout("rdi") fd => _,
-            inlateout("rsi") buffer.as_ptr() => _, inlateout("rdx") buffer.len() => _,
-            lateout("r8") _, lateout("r9") _, lateout("r10") _,
-            lateout("rcx") _, lateout("r11") _, options(nostack));
-    }
-    result as isize
+    unsafe { vibix_syscall_write(fd, buffer.as_ptr(), buffer.len()) as isize }
+}
+
+#[cfg(test)]
+fn syscall_write(_fd: usize, _buffer: &[u8]) -> isize {
+    0
 }
 
 pub fn syscall_exit(code: i32) -> ! {
     unsafe {
-        let mut result = 0usize;
-        core::arch::asm!("syscall", inlateout("rax") result, in("rdi") code as usize,
+        core::arch::asm!("syscall", in("rax") 0usize, in("rdi") code as usize,
             lateout("rcx") _, lateout("r11") _, options(nostack));
     }
     loop { core::hint::spin_loop(); }

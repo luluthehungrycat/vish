@@ -113,13 +113,17 @@ impl Drop for Guard {
     fn drop(&mut self) { LOCK.store(false, Ordering::Release); }
 }
 
+#[cfg(not(test))]
 unsafe fn syscall_brk(address: usize) -> usize {
-    let mut result = 4usize;
-    core::arch::asm!("syscall", inlateout("rax") result, inlateout("rdi") address => _,
-        lateout("rsi") _, lateout("rdx") _, lateout("r8") _,
-        lateout("r9") _, lateout("r10") _,
-        lateout("rcx") _, lateout("r11") _, options(nostack));
-    result
+    extern "C" {
+        fn vibix_syscall_brk(address: usize) -> usize;
+    }
+    vibix_syscall_brk(address)
+}
+
+#[cfg(test)]
+unsafe fn syscall_brk(_address: usize) -> usize {
+    usize::MAX
 }
 
 unsafe fn grow(heap: &mut Heap, layout: Layout) -> bool {
