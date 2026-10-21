@@ -6,7 +6,7 @@
 //! History is a bounded ring buffer with deduplication.
 
 use alloc::vec::Vec;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use crate::io::{ReadChar, WriteStr};
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ pub struct History {
 impl History {
     pub fn new(capacity: usize) -> Self {
         History {
-            entries: Vec::with_capacity(capacity),
+            entries: Vec::new(),
             capacity,
             browse: None,
             pending: String::new(),
